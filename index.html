@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Sora Runners</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080910;color:#fff;font-family:Inter,system-ui,Segoe UI,sans-serif}canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none}#brand{position:absolute;top:18px;left:20px;font-weight:900;letter-spacing:3px;color:#ff4b70;text-shadow:0 0 16px #ff164c;font-size:20px}#tip{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 15px;background:#090b14c9;border:1px solid #71304c;border-radius:12px;color:#ddd;font-size:12px;white-space:nowrap}#cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff5a80;font-size:18px;text-shadow:0 0 8px #ff315f}#menu{pointer-events:auto;position:absolute;right:18px;top:18px;width:270px;background:linear-gradient(160deg,#141321f2,#080a12f5);border:1px solid #e73567;border-radius:16px;box-shadow:0 0 22px #c41b4a44;padding:16px;display:none}#menu.open{display:block}#menu h2{margin:0 0 2px;color:#ff4775;letter-spacing:2px}#menu small{color:#9b9bad}label{display:block;margin-top:14px;font-size:12px;color:#d5d5e0}input[type=range]{width:100%;accent-color:#ff3970}button{background:#bb214f;color:#fff;border:1px solid #ff5b85;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}button:hover{filter:brightness(1.2)}.row{display:flex;justify-content:space-between;align-items:center;margin-top:12px}#start{pointer-events:auto;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#090b14ee;border:1px solid #ff4775;border-radius:18px;padding:24px 30px;text-align:center;box-shadow:0 0 35px #c31e5044;max-width:330px}#start h1{margin:0;color:#ff4775;letter-spacing:4px}#start p{color:#c7c8d5;font-size:13px;line-height:1.5}#start button{font-size:15px;padding:12px 24px}#start.hidden{display:none}#toast{position:absolute;top:80px;left:20px;color:#ff86a6;font-size:12px}
+#mobile{display:none;position:fixed;inset:0;pointer-events:none;touch-action:none;z-index:5}
+#stickBase{position:absolute;left:22px;bottom:26px;width:136px;height:136px;border-radius:50%;border:2px solid #ff477777;background:#130d1c99;pointer-events:auto;touch-action:none;box-shadow:0 0 20px #e72b5940}
+#stickKnob{position:absolute;left:42px;top:42px;width:48px;height:48px;border-radius:50%;background:#ff4777aa;border:2px solid #ff8aa9;box-shadow:0 0 14px #ff477766}
+#touchBtns{position:absolute;right:18px;bottom:24px;display:flex;align-items:flex-end;gap:12px;pointer-events:auto}
+#touchBtns button{width:68px;height:68px;border-radius:50%;background:#190d20dd;border:2px solid #ff4777;box-shadow:0 0 15px #ff477744;font-size:11px;touch-action:none;padding:4px}
+#touchBtns #jumpBtn{width:82px;height:82px;background:#a92250dd;font-size:13px}
+@media (pointer:coarse){#tip{bottom:175px;font-size:10px}#menu{right:10px;top:62px;width:min(270px,calc(100vw - 20px));max-height:65vh;overflow:auto}#brand{top:12px;left:12px;font-size:17px}#start{width:calc(100% - 36px)}}
+</style>
+</head>
+<body>
+<div id="hud"><div id="brand">SORA RUNNERS</div><div id="cross">+</div><div id="tip">Desktop: WASD · Mouse · Space · Shift · M &nbsp;|&nbsp; Mobile: joystick · swipe · buttons</div><div id="toast"></div>
+<div id="mobile"><div id="stickBase"><div id="stickKnob"></div></div><div id="touchBtns"><button id="menuBtn">SORA</button><button id="sprintBtn">RUN</button><button id="jumpBtn">JUMP</button></div></div>
+<div id="start"><h1>SORA RUNNERS</h1><p>Run, jump, and explore a neon parkour arena.<br>Desktop: mouse + keyboard · Phone: touch controls</p><button id="play">START RUNNING</button></div>
+<div id="menu"><h2>SORA MENU</h2><small>Movement settings</small><label>Move speed <span id="speedVal">6.0</span></label><input id="speed" type="range" min="3" max="12" step="0.5" value="6"><label>Jump power <span id="jumpVal">7.5</span></label><input id="jump" type="range" min="5" max="12" step="0.5" value="7.5"><div class="row"><span style="font-size:12px">Sprint</span><button id="sprintToggle">ON</button></div><div class="row"><span style="font-size:12px">Resume</span><button id="resume">CLOSE MENU</button></div></div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x080b15);scene.fog=new THREE.Fog(0x080b15,22,85);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,150);camera.position.set(0,2,7);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x8eafff,0x15101d,2));const light=new THREE.DirectionalLight(0xffc6dc,2.4);light.position.set(8,14,7);light.castShadow=true;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:0x161a27,roughness:.85}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(100,100,0x3c3263,0x242a3a);grid.position.y=.015;scene.add(grid);
+function box(x,y,z,sx,sy,sz,color,glow=0){let m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),new THREE.MeshStandardMaterial({color,emissive:glow?color:0x000000,emissiveIntensity:glow?0.45:0,roughness:.65}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+// Parkour platforms and decorative pillars
+box(0,.5,-9,8,1,5,0x34304e);box(-7,1.4,-14,5,1,5,0x352747);box(7,2.1,-17,5,1,5,0x263858);box(0,3.2,-23,8,1,6,0x46304d);box(-10,2.6,-24,4,1,4,0x302b50);box(11,3.7,-27,4,1,4,0x2b4563);
+for(let i=0;i<12;i++){let x=(i%2?1:-1)*(5+Math.floor(i/2)*2),z=-4-i*3.4;box(x,2.2,z,1.2,4.4,1.2,i%2?0x2d4668:0x552c54);}
+// Neon rings as torus markers
+for(let i=0;i<8;i++){let ring=new THREE.Mesh(new THREE.TorusGeometry(1.5,.055,10,48),new THREE.MeshStandardMaterial({color:i%2?0x38baff:0xff3c79,emissive:i%2?0x38baff:0xff3c79,emissiveIntensity:1.4}));ring.position.set(Math.sin(i*1.2)*8,2.4,-10-i*4);scene.add(ring)}
+// player body marker, kept invisible for first-person
+const player={pos:new THREE.Vector3(0,1.65,5),vel:new THREE.Vector3(),yaw:0,pitch:0,onGround:true};
+const keys={};let running=false,menuOpen=false,sprintEnabled=true,speed=6,jumpPower=7.5;const mobileUI=document.querySelector('#mobile');if(('ontouchstart' in window)||navigator.maxTouchPoints>0)mobileUI.style.display='block';let joy={active:false,id:null,x:0,y:0};let touchLook={id:null,x:0,y:0};const menu=document.querySelector('#menu'),start=document.querySelector('#start'),toast=document.querySelector('#toast');
+function notice(t){toast.textContent=t;setTimeout(()=>{if(toast.textContent===t)toast.textContent=''},1600)}
+function openMenu(){menuOpen=!menuOpen;menu.classList.toggle('open',menuOpen);if(menuOpen){document.exitPointerLock?.();notice('Sora movement settings opened')}else if(running)renderer.domElement.requestPointerLock?.()}
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyM'&&running)openMenu();if(e.code==='Space'&&player.onGround&&!menuOpen){player.vel.y=jumpPower;player.onGround=false}});document.addEventListener('keyup',e=>keys[e.code]=false);
+document.addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement&&!menuOpen){player.yaw-=e.movementX*.0022;player.pitch-=e.movementY*.0022;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch))}});
+// Touch joystick: left side movement. Right side drag rotates the camera.
+const base=document.querySelector('#stickBase'),knob=document.querySelector('#stickKnob');const maxR=42;
+function joystickMove(e){const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,d=Math.hypot(dx,dy);if(d>maxR){dx=dx*maxR/d;dy=dy*maxR/d}joy.x=dx/maxR;joy.y=dy/maxR;knob.style.transform=`translate(${dx}px,${dy}px)`}
+base.addEventListener('pointerdown',e=>{e.preventDefault();joy.active=true;joy.id=e.pointerId;base.setPointerCapture(e.pointerId);joystickMove(e)});
+base.addEventListener('pointermove',e=>{if(joy.active&&e.pointerId===joy.id)joystickMove(e)});
+function endJoy(e){if(e.pointerId===joy.id){joy.active=false;joy.x=joy.y=0;joy.id=null;knob.style.transform='translate(0,0)'}}base.addEventListener('pointerup',endJoy);base.addEventListener('pointercancel',endJoy);
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.clientX>innerWidth*.42&&!menuOpen){touchLook.id=e.pointerId;touchLook.x=e.clientX;touchLook.y=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)}});
+renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&e.pointerId===touchLook.id&&!menuOpen){let dx=e.clientX-touchLook.x,dy=e.clientY-touchLook.y;player.yaw-=dx*.006;player.pitch-=dy*.006;player.pitch=Math.max(-1.25,Math.min(1.25,player.pitch));touchLook.x=e.clientX;touchLook.y=e.clientY}});
+renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerId===touchLook.id)touchLook.id=null});renderer.domElement.addEventListener('pointercancel',e=>{if(e.pointerId===touchLook.id)touchLook.id=null});
+function setHold(btn,key){let el=document.querySelector(btn);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;el.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(evt=>el.addEventListener(evt,()=>keys[key]=false))}
+setHold('#jumpBtn','Space');setHold('#sprintBtn','ShiftLeft');document.querySelector('#menuBtn').addEventListener('click',()=>{if(running)openMenu()});
+
+document.querySelector('#play').onclick=()=>{running=true;start.classList.add('hidden');if(!mobileUI.style.display||mobileUI.style.display==='none')renderer.domElement.requestPointerLock?.();else notice('Touch controls enabled — left joystick to move, swipe right to look')};document.querySelector('#resume').onclick=openMenu;
+document.querySelector('#speed').oninput=e=>{speed=+e.target.value;document.querySelector('#speedVal').textContent=speed.toFixed(1)};document.querySelector('#jump').oninput=e=>{jumpPower=+e.target.value;document.querySelector('#jumpVal').textContent=jumpPower.toFixed(1)};document.querySelector('#sprintToggle').onclick=e=>{sprintEnabled=!sprintEnabled;e.target.textContent=sprintEnabled?'ON':'OFF';e.target.style.background=sprintEnabled?'#bb214f':'#343444'};
+const clock=new THREE.Clock();function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.035);if(running&&!menuOpen){if(keys.Space&&player.onGround){player.vel.y=jumpPower;player.onGround=false}let forward=(keys.KeyW?1:0)-(keys.KeyS?1:0)+(-joy.y),side=(keys.KeyD?1:0)-(keys.KeyA?1:0)+joy.x;let wish=new THREE.Vector3(side,0,-forward);if(wish.lengthSq()>0)wish.normalize();wish.applyAxisAngle(new THREE.Vector3(0,1,0),player.yaw);let boost=(sprintEnabled&&keys.ShiftLeft)?1.55:1;let targetSpeed=speed*boost;player.vel.x+=(wish.x*targetSpeed-player.vel.x)*Math.min(1,dt*9);player.vel.z+=(wish.z*targetSpeed-player.vel.z)*Math.min(1,dt*9);player.vel.y-=18*dt;player.pos.addScaledVector(player.vel,dt);if(player.pos.y<1.65){player.pos.y=1.65;player.vel.y=0;player.onGround=true}player.pos.x=Math.max(-24,Math.min(24,player.pos.x));player.pos.z=Math.max(-38,Math.min(18,player.pos.z));}
+let lookDir=new THREE.Vector3(Math.sin(player.yaw)*Math.cos(player.pitch),Math.sin(player.pitch),-Math.cos(player.yaw)*Math.cos(player.pitch));camera.position.copy(player.pos);camera.lookAt(player.pos.clone().add(lookDir));renderer.render(scene,camera)}loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body></html>
